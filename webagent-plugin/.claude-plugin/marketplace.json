@@ -1,0 +1,33 @@
+{
+  "name": "webagent",
+  "id": "webagent",
+  "owner": {
+    "name": "webagent"
+  },
+  "metadata": {
+    "description": "Browser automation skill — navigate, scrape, search, and download with intelligent planning and token tracking",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "webagent",
+      "source": "./",
+      "description": "Browser automation skill that teaches Claude to clarify intent, plan steps with token estimates, and execute web tasks using Playwright and yt-dlp.",
+      "version": "1.0.0",
+      "author": {
+        "name": "webagent"
+      },
+      "keywords": [
+        "browser",
+        "automation",
+        "scraping",
+        "playwright",
+        "yt-dlp",
+        "web",
+        "download"
+      ],
+      "category": "automation",
+      "strict": false
+    }
+  ]
+}

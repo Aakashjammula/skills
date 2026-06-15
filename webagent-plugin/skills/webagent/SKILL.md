@@ -361,26 +361,47 @@ Which quality would you like?
 
 Then wait for the user's selection before running any download command.
 
+### Audio/Video Format Compatibility
+
+**Why `bestaudio` causes no-audio in mp4:**
+YouTube's highest-quality audio stream is opus in a webm container. When merged into mp4, many players can't decode it → silent video. Always force `[ext=m4a]` for audio and `[ext=mp4]` for video. The `/best[ext=mp4]/best` fallback chain ensures yt-dlp tries progressively looser options if the exact combo isn't available.
+
+| Video codec | Audio codec | Container | Result |
+|---|---|---|---|
+| avc1/av01 (mp4) | mp4a (m4a) | mp4 | Works everywhere |
+| vp9 (webm) | opus (webm) | webm | Works in Chrome/VLC, not Windows Media Player |
+| avc1 (mp4) | opus (webm) | mp4 | **Silent in most players** |
+
 ### Download Commands by Quality
 
 **1080p video (most common choice):**
 ```bash
-yt-dlp -f "bestvideo[height<=1080]+bestaudio" --merge-output-format mp4 -o "%(title)s.%(ext)s" <url>
+yt-dlp -f "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best" --merge-output-format mp4 -o "%(title)s.%(ext)s" <url>
 ```
 
 **4K video:**
 ```bash
-yt-dlp -f bestvideo+bestaudio --merge-output-format mp4 -o "%(title)s.%(ext)s" <url>
+yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -o "%(title)s.%(ext)s" <url>
 ```
 
-**720p video (no FFmpeg needed):**
+**1440p video:**
 ```bash
-yt-dlp -f "bestvideo[height<=720]+bestaudio/best[height<=720]" -o "%(title)s.%(ext)s" <url>
+yt-dlp -f "bestvideo[height<=1440][ext=mp4]+bestaudio[ext=m4a]/best[height<=1440][ext=mp4]/best" --merge-output-format mp4 -o "%(title)s.%(ext)s" <url>
 ```
 
-**480p or 360p:**
+**720p video:**
 ```bash
-yt-dlp -f "bestvideo[height<=480]+bestaudio/best[height<=480]" -o "%(title)s.%(ext)s" <url>
+yt-dlp -f "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best" --merge-output-format mp4 -o "%(title)s.%(ext)s" <url>
+```
+
+**480p video:**
+```bash
+yt-dlp -f "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480][ext=mp4]/best" --merge-output-format mp4 -o "%(title)s.%(ext)s" <url>
+```
+
+**360p video:**
+```bash
+yt-dlp -f "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360][ext=mp4]/best" --merge-output-format mp4 -o "%(title)s.%(ext)s" <url>
 ```
 
 **Audio only — MP3:**
@@ -395,7 +416,7 @@ yt-dlp -x --audio-format m4a -o "%(title)s.%(ext)s" <url>
 
 **Custom output folder:**
 Add `-P "/path/to/folder"` to any command above.
-Example: `yt-dlp -f bestvideo+bestaudio --merge-output-format mp4 -P "~/Downloads/videos" -o "%(title)s.%(ext)s" <url>`
+Example: `yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -P "~/Downloads/videos" -o "%(title)s.%(ext)s" <url>`
 
 ### FFmpeg Dependency Warning
 
@@ -462,8 +483,13 @@ If a page redirects to a login screen:
 
 | Download quality | Command flag | FFmpeg needed |
 |---|---|---|
-| 4K | `bestvideo+bestaudio` | Yes |
-| 1080p | `bestvideo[height<=1080]+bestaudio` | Yes |
-| 720p | `bestvideo[height<=720]+bestaudio/best[height<=720]` | No |
+| 4K | `bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best` | Yes |
+| 1440p | `bestvideo[height<=1440][ext=mp4]+bestaudio[ext=m4a]/best[height<=1440][ext=mp4]/best` | Yes |
+| 1080p | `bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best` | Yes |
+| 720p | `bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best` | Yes |
+| 480p | `bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480][ext=mp4]/best` | Yes |
+| 360p | `bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360][ext=mp4]/best` | Yes |
 | MP3 | `-x --audio-format mp3 --audio-quality 0` | Yes |
 | M4A | `-x --audio-format m4a` | No |
+
+> Always use `[ext=mp4]+[ext=m4a]` — `bestaudio` alone picks opus/webm which causes silent mp4 on most players.

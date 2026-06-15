@@ -15,7 +15,8 @@ process.stdin.on('data', chunk => raw += chunk);
 process.stdin.on('end', () => {
   try {
     const data = JSON.parse(raw);
-    const output = String(data.output || '');
+    // Claude Code / OpenCode: data.output — Copilot CLI: data.tool_result
+    const output = String(data.output || data.tool_result || '');
     const tool = data.tool_name || 'unknown';
 
     // Count tokens in this tool call's output
@@ -48,12 +49,16 @@ process.stdin.on('end', () => {
       fs.appendFileSync(logPath,
         `${new Date().toISOString()} | HARD STOP | session total ${state.total} exceeded ${TOKEN_CAP} cap\n`
       );
+      const stopMsg =
+        `[WEBAGENT HARD STOP] Session token total (${state.total}) has exceeded the ` +
+        `${TOKEN_CAP}-token cap. STOP all browser actions immediately. Do not call any more ` +
+        `Playwright or web tools. Tell the user: "Session token cap (${TOKEN_CAP.toLocaleString()}) ` +
+        `reached. Total used: ${state.total.toLocaleString()}. Start a new session to continue."`;
+      // Output all platform formats — each platform uses what it recognises, ignores the rest
       console.log(JSON.stringify({
-        additionalContext:
-          `\n\n[WEBAGENT HARD STOP] Session token total (${state.total}) has exceeded the ` +
-          `${TOKEN_CAP}-token cap. STOP all browser actions immediately. Do not call any more ` +
-          `Playwright or web tools. Tell the user: "Session token cap (${TOKEN_CAP.toLocaleString()}) ` +
-          `reached. Total used: ${state.total.toLocaleString()}. Start a new session to continue."`
+        additionalContext: '\n\n' + stopMsg, // Claude Code / OpenCode
+        systemMessage: stopMsg,              // Codex CLI
+        continue: false                      // Codex CLI — stop execution
       }));
       process.exit(0);
     }

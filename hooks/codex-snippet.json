@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": ".*playwright.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_SKILLS_DIR/hooks/track-tokens.js\""
+          }
+        ]
+      },
+      {
+        "matcher": ".*browser_navigate.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_SKILLS_DIR/hooks/log-navigation.js\""
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -38,13 +38,13 @@ cd claude-skills
 
 Skills follow the [SKILL.md open standard](https://www.agensi.io/learn/agent-skills-open-standard) and work across all major AI coding agents without modification.
 
-| Platform | Skills | Hooks | Plugin manifest |
+| Platform | Skills | Hooks | Config snippet |
 |---|---|---|---|
-| Claude Code | ✓ | ✓ (track-tokens, log-navigation) | ✓ (plugin.json) |
-| OpenCode | ✓ | — | — |
-| Antigravity CLI (Google) | ✓ | — | — |
-| Codex CLI (OpenAI) | ✓ | — | — |
-| Copilot CLI | ✓ | — | — |
+| Claude Code | ✓ | ✓ | `hooks/settings-snippet.json` |
+| OpenCode | ✓ | ✓ | `hooks/settings-snippet.json` (compatible) |
+| Codex CLI (OpenAI) | ✓ | ✓ | `hooks/codex-snippet.json` |
+| Copilot CLI | ✓ | ✓ | `hooks/copilot-snippet.json` |
+| Antigravity CLI (Google) | ✓ | — | Python SDK hooks — not yet supported |
 
 ---
 

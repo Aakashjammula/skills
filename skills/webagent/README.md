@@ -402,6 +402,18 @@ sequenceDiagram
     C->>C: report tokens from log\n(measured, not estimated)
 ```
 
+### Platform support
+
+The hook scripts auto-detect input format and output all platform response formats — each platform uses what it recognises and ignores the rest.
+
+| Platform | Supported | Config snippet |
+|---|---|---|
+| Claude Code | ✓ | `hooks/settings-snippet.json` |
+| OpenCode | ✓ | `hooks/settings-snippet.json` (Claude Code compatible) |
+| Codex CLI | ✓ | `hooks/codex-snippet.json` |
+| Copilot CLI | ✓ | `hooks/copilot-snippet.json` |
+| Antigravity CLI | — | Python SDK hooks — not yet supported |
+
 ### Setup
 
 **Step 1 — Set `CLAUDE_SKILLS_DIR` as a permanent environment variable** (do this once, survives renames):

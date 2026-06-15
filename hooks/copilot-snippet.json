@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "hooks": {
+    "postToolUse": [
+      {
+        "type": "command",
+        "bash": "node \"$CLAUDE_SKILLS_DIR/hooks/track-tokens.js\"",
+        "timeoutSec": 10
+      },
+      {
+        "type": "command",
+        "bash": "node \"$CLAUDE_SKILLS_DIR/hooks/log-navigation.js\"",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}

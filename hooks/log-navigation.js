@@ -12,8 +12,10 @@ process.stdin.on('data', chunk => raw += chunk);
 process.stdin.on('end', () => {
   try {
     const data = JSON.parse(raw);
-    const input = data.input || {};
-    const output = String(data.output || '');
+    // Claude Code / OpenCode: data.input — Copilot CLI: data.tool_input
+    const input = data.input || data.tool_input || {};
+    // Claude Code / OpenCode: data.output — Copilot CLI: data.tool_result
+    const output = String(data.output || data.tool_result || '');
     const url = input.url || input.href || 'unknown-url';
 
     // Log the navigation

@@ -609,3 +609,4 @@ This plugin uses **no third-party MCP libraries** — [which have documented RCE
 - No network calls, no background processes, no ports opened
 
 The only executables are `yt-dlp` and `ffmpeg` — both open source, widely audited, installed via official package managers.
+# skills

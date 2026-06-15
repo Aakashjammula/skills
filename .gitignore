@@ -1,0 +1,6 @@
+.playwright-mcp/
+docs/
+*.mp4
+*.mp3
+*.m4a
+kimi-k2-5-aws-bedrock-docs.md

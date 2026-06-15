@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node /path/to/webagent-plugin/hooks/track-tokens.js"
+            "command": "node /path/to/claude-skills/hooks/track-tokens.js"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node /path/to/webagent-plugin/hooks/log-navigation.js"
+            "command": "node /path/to/claude-skills/hooks/log-navigation.js"
           }
         ]
       }

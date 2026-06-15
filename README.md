@@ -1,14 +1,15 @@
-# WebAgent — Browser Automation Plugin for Claude Code
+# claude-skills
 
-A Claude Code plugin that gives any AI agent intelligent web automation. Navigate sites, scrape content, search the internet, and download videos — with automatic step planning, token tracking, and clarifying questions before acting.
+A growing collection of Claude Code skills and plugins. Currently ships one plugin: **webagent** — intelligent browser automation with planning, token tracking, and a 50k hard cap.
 
-No server. No MCP libraries. No supply chain risk. Two files.
+No server. No MCP libraries. No supply chain risk.
 
 ---
 
 ## Table of Contents
 
-- [How It Works](#how-it-works)
+- [Skills in this repo](#skills-in-this-repo)
+- [How WebAgent Works](#how-webagent-works)
 - [File Structure](#file-structure)
 - [Code Logic — Deep Dive](#code-logic--deep-dive)
 - [All Tools Reference](#all-tools-reference)
@@ -16,10 +17,19 @@ No server. No MCP libraries. No supply chain risk. Two files.
 - [Hooks](#hooks)
 - [Install](#install)
 - [Download Quality Reference](#download-quality-reference)
+- [Security](#security)
 
 ---
 
-## How It Works
+## Skills in this repo
+
+| Skill | What it does |
+|---|---|
+| `webagent` | Browser automation — navigate, scrape, research, download with 3-phase planning and token tracking |
+
+---
+
+## How WebAgent Works
 
 ```mermaid
 flowchart TD
@@ -67,26 +77,28 @@ flowchart TD
 ## File Structure
 
 ```
-webagent-plugin/
+claude-skills/
 │
 ├── .claude-plugin/
-│   └── plugin.json              ← Plugin identity — Claude Code reads this to register the plugin
+│   └── plugin.json              ← Plugin identity — Claude Code reads this to register all skills
 │
 ├── skills/
 │   └── webagent/
 │       └── SKILL.md             ← All intelligence — the complete cognitive model for web automation
 │
 ├── hooks/
-│   ├── track-tokens.js          ← PostToolUse hook — counts real tokens from every Playwright call
-│   ├── log-navigation.js        ← PostToolUse hook — logs every URL visited to session history
-│   └── settings-snippet.json   ← Copy-paste this into ~/.claude/settings.json to enable hooks
+│   ├── track-tokens.js          ← PostToolUse hook — cumulative token tracking + 50k hard cap kill
+│   ├── log-navigation.js        ← PostToolUse hook — URL history + silent failure detection
+│   └── settings-snippet.json   ← Copy-paste into ~/.claude/settings.json to enable hooks
 │
 └── README.md
 ```
 
-### Why only 2 core files?
+Adding a new skill: create `skills/<name>/SKILL.md` — no other config needed.
 
-This plugin adds no new tools — it layers a **cognitive model** on top of tools Claude Code already has:
+### Why no tool code?
+
+This plugin layers a **cognitive model** on top of tools Claude Code already has:
 
 | Tool source | What it provides |
 |---|---|
@@ -104,18 +116,18 @@ This plugin adds no new tools — it layers a **cognitive model** on top of tool
 {
   "name": "webagent",
   "description": "Browser automation skill...",
-  "author": { "name": "webagent" },
+  "author": { "name": "Aakashjammula" },
   "version": "1.0.0"
 }
 ```
 
-Claude Code scans `~/.claude/plugins/` for directories containing `.claude-plugin/plugin.json`. When found, it registers the plugin name and loads any `skills/` inside it. Without this file, the skill directory is invisible to Claude Code.
+Claude Code scans `~/.claude/plugins/` for directories containing `.claude-plugin/plugin.json`. When found, it registers the plugin and loads any `skills/` inside it. Without this file, the skill directory is invisible to Claude Code.
 
 ---
 
 ### `SKILL.md` — The Cognitive Model
 
-This is the entire intelligence of the plugin. It's a markdown file that instructs Claude *how to think and act* for any web task. Here's how each section works:
+The entire intelligence of the plugin. A markdown file that instructs Claude *how to think and act* for any web task.
 
 #### Frontmatter — Skill Registration
 
@@ -126,23 +138,11 @@ description: Browser automation skill — activates for any web navigation...
 ---
 ```
 
-The `description` field is what Claude Code uses to match this skill to user requests. When a user types a web-related task, Claude Code checks skill descriptions and loads matching ones into context. A precise description means the skill loads only when relevant — saving tokens.
-
-#### Trigger Conditions
-
-```
-Activate whenever the user asks you to:
-- Go to a website or URL
-- Find, search for, or look up content online
-- Scrape, extract, or download data from a site
-...
-```
-
-These are pattern-match instructions to Claude. When the skill loads, Claude reads these and decides whether to run the 3-phase model. The `When NOT to Activate` section prevents the skill from firing on unrelated tasks (coding questions, local file operations) — keeping it focused and token-efficient.
+The `description` field is what Claude Code uses to match this skill to user requests. A precise description means the skill loads only when relevant — saving tokens.
 
 #### Phase 1 Logic — Intent Clarification
 
-The core insight: **most agents fail because they act before understanding**. Phase 1 fixes this by enforcing a strict question order before any browser action:
+**Most agents fail because they act before understanding.** Phase 1 enforces a strict question order before any browser action:
 
 ```
 1. Topic disambiguation  → What exactly does the user mean?
@@ -150,23 +150,21 @@ The core insight: **most agents fail because they act before understanding**. Ph
 3. Format/preference     → Only if still needed after 1 and 2
 ```
 
-The skill classifies every incoming task into one of 5 types:
+Task types and their question flows:
 
 ```
 find_content  → videos, articles, examples, demos
 scrape_data   → structured data extraction
 research      → gather and compare information
-download      → video/audio/file download
-navigate      → deterministic URL + action (no questions needed)
+download      → video/audio/file download (defaults to ~/Downloads/webagent)
+navigate      → deterministic URL + action (skips Phase 1 entirely)
 ```
 
-Each type has pre-defined questions mapped to it. `navigate` skips Phase 1 entirely — it's unambiguous by definition.
-
-**Why one question at a time?** Asking multiple questions at once overwhelms users and produces incomplete answers. One question → wait → one answer → next question produces better context with fewer tokens wasted on ignored answers.
+**Why one question at a time?** Multiple questions overwhelm users and produce incomplete answers. One question → wait → one answer produces better context with fewer wasted tokens.
 
 #### Phase 2 Logic — Step Planning
 
-Before any browser action, the skill produces a plan:
+Before any browser action, the skill produces a gated plan:
 
 ```
 Step 1: Navigate to youtube.com           [~180 tokens]
@@ -176,109 +174,129 @@ Estimated total: ~630 tokens
 Proceed? (yes / adjust)
 ```
 
-Token estimation formula (no API key needed):
+Token estimation formula:
 ```
 estimate_A = characters_in_expected_output ÷ 4
 estimate_B = words_in_expected_output × 1.3
 tokens = ceil(average(estimate_A, estimate_B) / 10) × 10
 ```
 
-The plan gates execution — nothing runs until the user says "yes". This gives the user full control over what the agent does and how much it costs before spending a single token on browser actions.
+Nothing runs until the user says "yes".
 
 #### Phase 3 Logic — Execution with Token Tracking
 
-Steps execute one at a time. After each step:
+Steps execute one at a time. After each:
 
 ```
 ✓ Step N: [what was done]
   Tokens this step: NNN  |  Session total: NNN
 ```
 
-Token counting uses the same formula as Phase 2, applied to the actual output received (not the estimate). If hooks are enabled, the hook measures output tokens directly from the Playwright tool response — more accurate than the in-skill estimate.
+If hooks are enabled, token counts come from `~/.webagent-session.log` — **measured from the actual tool output**, not estimated. The 40k warning fires before any step that would push the session above the threshold.
 
-The 40,000 token warning fires before any step that would push the session above the threshold:
+#### Output Folder
 
-```
-⚠️ Session total approaching 40,000 tokens.
-Current: NNN | Next step: ~NNN
-Continue? (yes / stop)
-```
-
-This prevents runaway sessions on large scraping or multi-page research tasks.
+All output — downloads and scraped files — saves to `~/Downloads/webagent/`. Never to cwd or the repo.
 
 ---
 
-### `hooks/track-tokens.js` — Real Token Counting
+### `hooks/track-tokens.js` — Token Counting + 50k Hard Cap
 
 ```js
-process.stdin.on('end', () => {
-  const data = JSON.parse(raw);
-  const output = String(data.output || '');
+// Load or reset session state (resets after 2 hours idle = new session)
+let state = { total: 0, updatedAt: Date.now() };
+try {
+  const saved = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  if (Date.now() - saved.updatedAt < SESSION_TIMEOUT_MS) state = saved;
+} catch {}
 
-  const chars = output.length;
-  const words = output.split(/\s+/).filter(Boolean).length;
-  const tokens = Math.ceil((chars / 4 + words * 1.3) / 2);
+state.total += tokens;
+fs.writeFileSync(statePath, JSON.stringify(state));
 
-  fs.appendFileSync(logPath, `${tool} | ${tokens} tokens\n`);
-});
+// Debug log — running total on every line
+fs.appendFileSync(logPath,
+  `${new Date().toISOString()} | ${tool} | ${tokens} tokens | session total: ${state.total}\n`
+);
+
+// Hard cap — kill the session at 50k
+if (state.total >= TOKEN_CAP) {
+  console.log(JSON.stringify({
+    additionalContext: `[WEBAGENT HARD STOP] Session total (${state.total}) exceeded ${TOKEN_CAP} cap. Stop all browser tools immediately.`
+  }));
+}
 ```
 
-**How it fits in:** Claude Code fires `PostToolUse` after every Playwright tool call. This hook reads the raw JSON output from stdin, applies the two-pass token estimation (chars ÷ 4, words × 1.3, average), and appends to `~/.webagent-session.log`. The SKILL.md instructs Claude to read this log when reporting tokens — so Phase 3 reports **measured** counts, not estimates.
+**How it fits in:** Claude Code fires `PostToolUse` after every Playwright tool call. The hook reads tool output from stdin, counts tokens (chars ÷ 4, words × 1.3, averaged), accumulates into `~/.webagent-session-state.json`, and appends to `~/.webagent-session.log` with the running total on every line.
 
-**Why Node.js?** Cross-platform (Windows/Mac/Linux), no dependencies, reads stdin natively. The hook never blocks — any error exits cleanly with code 0 so it never interrupts the agent.
+At 50,000 tokens, it injects a `additionalContext` hard stop that forces Claude to halt all further browser tool calls and report to the user.
+
+State resets automatically after 2 hours idle (new session assumed). Delete `~/.webagent-session-state.json` to reset manually.
+
+**Why Node.js?** Cross-platform (Windows/Mac/Linux), no dependencies, reads stdin natively. Any error exits cleanly with code 0 — the hook never blocks the agent.
 
 ---
 
-### `hooks/log-navigation.js` — Browsing History
+### `hooks/log-navigation.js` — URL History + Silent Failure Detection
 
 ```js
-const url = input.url || input.href || 'unknown-url';
+// Log every navigation
 fs.appendFileSync(logPath, `${new Date().toISOString()} | ${url}\n`);
+
+// Flag silent failures Claude might not surface
+const silentFail =
+  lower.includes('net::err') || lower.includes('timeout') ||
+  lower.includes('page crashed') || lower.includes('navigation failed');
+
+if (silentFail) {
+  fs.appendFileSync(logPath,
+    `${new Date().toISOString()} | SILENT FAILURE at ${url} | ${output.substring(0, 400)}\n`
+  );
+}
 ```
 
-Fires after every `browser_navigate` call. Logs timestamp + URL to `~/.webagent-nav.log`. Useful for debugging what the agent visited, auditing automated sessions, or resuming interrupted tasks.
+Fires after every `browser_navigate` call. Logs timestamp + URL to `~/.webagent-nav.log`. Detects network errors, timeouts, page crashes, and navigation failures — flags them as `SILENT FAILURE` so they appear in the log even when Claude doesn't mention them. Hook errors themselves are logged too.
 
 ---
 
 ## All Tools Reference
-
-The skill instructs Claude to use these tools, all sourced from the Playwright plugin or Claude Code's built-in capabilities.
 
 ### Browser Tools (Playwright plugin)
 
 | Tool | What it does | When to use | Token cost |
 |---|---|---|---|
 | `browser_navigate(url)` | Go to a URL | Starting point for any web task | 100–200 |
-| `browser_snapshot()` | Get page accessibility tree (structured DOM) | Reading page content — preferred over screenshot | 200–500 |
-| `browser_screenshot()` | Capture current page as image | When page is visual/dynamic, hard to read as text | 300–800 |
-| `browser_click(element)` | Click an element by description | Buttons, links, tabs, dropdowns | 50–100 |
-| `browser_type(element, text)` | Type text into an input | Search boxes, forms, login fields | 50–100 |
-| `browser_select_option(element, value)` | Select from a dropdown | Quality selectors, filter menus | 50–100 |
+| `browser_snapshot()` | Get page accessibility tree | Reading page content — preferred over screenshot | 200–500 |
+| `browser_screenshot()` | Capture page as image | Visual/dynamic pages, hard to read as text | 300–800 |
+| `browser_click(element)` | Click by description | Buttons, links, tabs, dropdowns | 50–100 |
+| `browser_type(element, text)` | Type into an input | Search boxes, forms, login fields | 50–100 |
+| `browser_select_option(element, value)` | Select from dropdown | Quality selectors, filter menus | 50–100 |
 | `browser_press_key(key)` | Press a keyboard key | Enter after search, Escape to close | 30–50 |
-| `browser_hover(element)` | Hover over an element | Revealing tooltips, dropdown menus | 30–50 |
+| `browser_hover(element)` | Hover over an element | Tooltips, dropdown menus | 30–50 |
 | `browser_wait_for(condition)` | Wait for element or state | Dynamic pages, SPAs, lazy loading | 50–100 |
 | `browser_evaluate(js)` | Run JavaScript in the page | Extracting values no other tool reaches | 50–500 |
-| `browser_network_requests()` | List all network requests | Finding API endpoints, inspecting calls | 200–400 |
-| `browser_fill_form(fields)` | Fill multiple form fields at once | Registration forms, multi-field inputs | 100–200 |
-| `browser_navigate_back()` | Go back in browser history | Returning from a result page | 50–100 |
-| `browser_tabs()` | List open browser tabs | Multi-tab workflows | 50–100 |
+| `browser_network_requests()` | List network requests | Finding API endpoints | 200–400 |
+| `browser_fill_form(fields)` | Fill multiple fields at once | Registration forms | 100–200 |
+| `browser_navigate_back()` | Go back in history | Returning from a result page | 50–100 |
+| `browser_tabs()` | List open tabs | Multi-tab workflows | 50–100 |
 
 ### Web Search (Claude Code built-in)
 
 | Tool | What it does | When to use |
 |---|---|---|
-| `WebSearch(query)` | Search the web, return structured results | Starting research without navigating to a specific site |
+| `WebSearch(query)` | Search the web, return structured results | Starting research without a specific URL |
 
 ### Download Tools (Bash + yt-dlp)
 
+All downloads save to `~/Downloads/webagent/`. Audio always uses `[ext=m4a]` and video `[ext=mp4]` to prevent silent-audio bugs.
+
 | Command | What it does |
 |---|---|
-| `yt-dlp --list-formats <url>` | Show all available formats/qualities before downloading |
-| `yt-dlp -f bestvideo+bestaudio --merge-output-format mp4` | Download 4K video + audio, merge to MP4 |
-| `yt-dlp -f "bestvideo[height<=1080]+bestaudio" --merge-output-format mp4` | Download 1080p |
-| `yt-dlp -f "bestvideo[height<=720]+bestaudio/best[height<=720]"` | Download 720p (no FFmpeg needed) |
-| `yt-dlp -x --audio-format mp3 --audio-quality 0` | Extract audio as MP3 (best quality) |
-| `yt-dlp -x --audio-format m4a` | Extract audio as M4A |
+| `yt-dlp --list-formats <url>` | Show all available formats before downloading |
+| `yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -P "~/Downloads/webagent"` | 4K download |
+| `yt-dlp -f "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best" --merge-output-format mp4 -P "~/Downloads/webagent"` | 1080p download |
+| `yt-dlp -f "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best" --merge-output-format mp4 -P "~/Downloads/webagent"` | 720p download |
+| `yt-dlp -x --audio-format mp3 --audio-quality 0 -P "~/Downloads/webagent"` | Audio only — MP3 |
+| `yt-dlp -x --audio-format m4a -P "~/Downloads/webagent"` | Audio only — M4A |
 
 ### Tool Priority Order
 
@@ -312,31 +330,26 @@ flowchart LR
 go to youtube and find me a video on Claude Code hooks
 ```
 
-**Agent flow:**
 1. Classifies as `find_content`
-2. Asks: "When you say hooks — Claude Code lifecycle hooks, Git hooks, or something else?"
+2. Asks: "Claude Code lifecycle hooks, Git hooks, or something else?"
 3. You: "Claude Code lifecycle hooks"
-4. Asks: "Are you trying to learn how to set one up, or understand what events are available?"
+4. Asks: "Learning how to set one up, or understanding what events exist?"
 5. You: "set one up"
-6. Shows plan: navigate → search "Claude Code lifecycle hooks tutorial" → scan results → recommend
+6. Plan: navigate → search → scan results → recommend
 7. Executes step by step with token counts
 
 ---
 
-### Scrape pricing plans
+### Scrape a docs page
 
 ```
-go to linear.app and get me all their pricing plans
+go to docs.aws.amazon.com/bedrock and find all Moonshot AI model documents
 ```
 
-**Agent flow:**
 1. Classifies as `scrape_data`
-2. Asks: "What specifically — plan names + prices, feature comparison, or everything?"
-3. You: "everything"
-4. Asks: "Save as JSON, markdown table, or plain text?"
-5. You: "markdown table"
-6. Shows plan: navigate → find pricing section → extract plan details → format as table
-7. Returns structured markdown table
+2. Navigates, searches docs, visits each Moonshot AI page
+3. Extracts full content
+4. Saves result to `~/Downloads/webagent/aws-bedrock-moonshot-docs.md`
 
 ---
 
@@ -346,15 +359,13 @@ go to linear.app and get me all their pricing plans
 download https://youtube.com/watch?v=dQw4w9WgXcQ
 ```
 
-**Agent flow:**
 1. Classifies as `download`
-2. Asks: "Is this for offline viewing, video editing, or audio only?"
+2. Asks: "Offline viewing, video editing, or audio only?"
 3. You: "offline viewing"
-4. Runs `yt-dlp --list-formats` to get available qualities
-5. Shows quality table with estimated sizes
-6. You: "1080p"
-7. Runs: `yt-dlp -f "bestvideo[height<=1080]+bestaudio" --merge-output-format mp4 -o "%(title)s.%(ext)s" <url>`
-8. Reports download progress and final file location
+4. Runs `yt-dlp --list-formats`, shows quality table
+5. You: "1080p"
+6. Creates `~/Downloads/webagent/`, runs download with `[ext=mp4]+[ext=m4a]` format
+7. Reports: `Saved to ~/Downloads/webagent/<title>.mp4`
 
 ---
 
@@ -364,10 +375,9 @@ download https://youtube.com/watch?v=dQw4w9WgXcQ
 go to github.com/settings and find where to enable two-factor authentication
 ```
 
-**Agent flow:**
 1. Classifies as `navigate` — deterministic, skips Phase 1
-2. Shows plan: navigate to github.com/settings → find security section → locate 2FA option → report location
-3. Executes and reports back with the exact path
+2. Plan: navigate → find security section → locate 2FA → report
+3. Executes and reports the exact path
 
 ---
 
@@ -377,19 +387,17 @@ go to github.com/settings and find where to enable two-factor authentication
 search for the best note-taking apps and compare their pricing
 ```
 
-**Agent flow:**
 1. Classifies as `research`
-2. Asks: "Are you comparing for personal use, team use, or something else?"
+2. Asks: "Personal use, team use, or something else?"
 3. You: "team use"
-4. Asks: "Save the comparison as a table I can keep, or just tell me the answer?"
-5. You: "table"
-6. Searches, visits top 3-5 results, extracts pricing, formats as markdown comparison table
+4. Searches, visits top results, extracts pricing
+5. Saves `~/Downloads/webagent/note-taking-apps-comparison.md`
 
 ---
 
 ## Hooks
 
-Two optional PostToolUse hooks fire after every Playwright browser action.
+Two PostToolUse hooks fire after every Playwright browser action.
 
 ```mermaid
 sequenceDiagram
@@ -397,14 +405,24 @@ sequenceDiagram
     participant P as Playwright Plugin
     participant H1 as track-tokens.js
     participant H2 as log-navigation.js
+    participant S as session-state.json
     participant L as Log Files
 
     C->>P: browser_navigate(url)
     P-->>C: result JSON
     C->>H1: PostToolUse (all Playwright tools)
-    H1->>H1: count tokens in output\nchars÷4 + words×1.3 ÷ 2
-    H1->>L: append to ~/.webagent-session.log
+    H1->>H1: count tokens in output
+    H1->>S: read + accumulate total
+    H1->>L: append to ~/.webagent-session.log\n(with running total)
+    H1->>H1: total >= 50k?
+    alt Hard cap hit
+        H1-->>C: additionalContext: HARD STOP
+        note over C: Claude stops all browser tools
+    else Under cap
+        H1-->>C: suppressOutput: false
+    end
     C->>H2: PostToolUse (navigate only)
+    H2->>H2: detect silent failures
     H2->>L: append to ~/.webagent-nav.log
     C->>C: report tokens from log\n(measured, not estimated)
 ```
@@ -422,7 +440,7 @@ Add to `~/.claude/settings.json` (replace path with your clone location):
         "hooks": [
           {
             "type": "command",
-            "command": "node /full/path/to/webagent-plugin/hooks/track-tokens.js"
+            "command": "node /full/path/to/claude-skills/hooks/track-tokens.js"
           }
         ]
       },
@@ -431,7 +449,7 @@ Add to `~/.claude/settings.json` (replace path with your clone location):
         "hooks": [
           {
             "type": "command",
-            "command": "node /full/path/to/webagent-plugin/hooks/log-navigation.js"
+            "command": "node /full/path/to/claude-skills/hooks/log-navigation.js"
           }
         ]
       }
@@ -444,8 +462,11 @@ Add to `~/.claude/settings.json` (replace path with your clone location):
 
 | File | Contents |
 |---|---|
-| `~/.webagent-session.log` | `2026-06-15T10:23:44Z \| browser_navigate \| 142 tokens` |
+| `~/.webagent-session.log` | `2026-06-15T10:23:44Z \| browser_navigate \| 142 tokens \| session total: 4821` |
+| `~/.webagent-session.log` | `2026-06-15T10:45:00Z \| HARD STOP \| session total 50142 exceeded 50000 cap` |
 | `~/.webagent-nav.log` | `2026-06-15T10:23:44Z \| https://youtube.com` |
+| `~/.webagent-nav.log` | `2026-06-15T10:24:01Z \| SILENT FAILURE at https://example.com \| net::ERR_NAME_NOT_RESOLVED` |
+| `~/.webagent-session-state.json` | `{"total": 4821, "updatedAt": 1749985424000}` — delete to reset session |
 
 ---
 
@@ -453,22 +474,24 @@ Add to `~/.claude/settings.json` (replace path with your clone location):
 
 ```bash
 # 1. Clone
-git clone <this-repo-url>
-cd webagent-plugin
+git clone https://github.com/Aakashjammula/claude-skills
+cd claude-skills
 
 # 2. Install the plugin
 claude plugin install .
 
-# 3. (Optional) Enable hooks — edit ~/.claude/settings.json
-#    Copy the snippet from hooks/settings-snippet.json
-#    Replace /path/to with your actual clone path
+# 3. Install the Playwright plugin (required for browser tools)
+claude plugin install playwright
+
+# 4. (Optional) Enable hooks
+#    Copy hooks/settings-snippet.json into ~/.claude/settings.json
+#    Replace /full/path/to/claude-skills with your actual clone path
+
+# 5. yt-dlp + ffmpeg (Windows — for downloads)
+winget install yt-dlp.yt-dlp --accept-source-agreements --accept-package-agreements
+winget install Gyan.FFmpeg --accept-source-agreements --accept-package-agreements
+# Then add yt-dlp to PATH — see hooks/settings-snippet.json for the PowerShell snippet
 ```
-
-**Requirements:**
-- [Claude Code](https://claude.ai/code)
-- [Playwright plugin](https://claude.ai/code/plugins) — `claude plugin install playwright`
-
-**For video/audio downloads:** yt-dlp and ffmpeg are required but **installed automatically** by the agent on first use — no manual setup needed.
 
 ---
 
@@ -477,13 +500,14 @@ claude plugin install .
 | Quality | Streams | FFmpeg | Approx size (10 min) | Best for |
 |---|---|---|---|---|
 | 4K (2160p) | video + audio → merged | Required | 2–4 GB | Archiving, editing |
+| 1440p | video + audio → merged | Required | 600 MB–1 GB | High-res viewing |
 | 1080p | video + audio → merged | Required | 300–600 MB | Offline viewing |
-| 720p | single stream | Not needed | 100–200 MB | Casual viewing |
-| 480p | single stream | Not needed | 50–100 MB | Low storage |
+| 720p | video + audio → merged | Required | 100–200 MB | Casual viewing |
+| 480p | video + audio → merged | Required | 50–100 MB | Low storage |
 | MP3 | audio only | Required (convert) | 15–25 MB | Music, podcasts |
 | M4A | audio only | Not needed | 20–30 MB | Best audio quality |
 
-> YouTube serves video and audio as **separate streams** for anything above 720p. FFmpeg merges them automatically — the agent installs it if missing.
+> Always use `[ext=mp4]+[ext=m4a]` — `bestaudio` alone picks opus/webm which causes silent audio in most mp4 players.
 
 ---
 
@@ -496,4 +520,4 @@ This plugin uses **no third-party MCP libraries** — [which have documented RCE
 - `hooks/*.js` — two small Node.js scripts, fully readable in under 2 minutes
 - No network calls, no background processes, no ports opened
 
-The only executables are `yt-dlp` and `ffmpeg` — both open source, widely audited system tools installed via official package managers.
+The only executables are `yt-dlp` and `ffmpeg` — both open source, widely audited, installed via official package managers.

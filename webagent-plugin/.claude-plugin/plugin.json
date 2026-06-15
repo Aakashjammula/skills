@@ -1,0 +1,8 @@
+{
+  "name": "webagent",
+  "description": "Browser automation skill — teaches Claude to clarify intent, plan steps with token estimates, and execute web tasks using Playwright and yt-dlp.",
+  "author": {
+    "name": "webagent"
+  },
+  "version": "1.0.0"
+}

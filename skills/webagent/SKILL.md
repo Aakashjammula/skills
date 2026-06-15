@@ -335,9 +335,11 @@ Tell the user: "Installed yt-dlp and ffmpeg — ready to download."
 
 Only proceed to the download once both tools are confirmed working.
 
-### Default Download Folder
+### Default Output Folder
 
-Always save downloads to `~/Downloads/webagent/`. Create it before every download:
+**All output — downloads AND saved scraped content — goes to `~/Downloads/webagent/`.** Never save to cwd, the repo, or a temp path.
+
+Create the folder before any save operation:
 
 ```bash
 # Windows (PowerShell)
@@ -347,9 +349,13 @@ New-Item -ItemType Directory -Force "$env:USERPROFILE\Downloads\webagent"
 mkdir -p ~/Downloads/webagent
 ```
 
-Use `-P "~/Downloads/webagent"` in every yt-dlp command. Only override if the user explicitly gives a different path.
+**Downloads (yt-dlp):** Use `-P "~/Downloads/webagent"` in every command.
 
-After the download completes, always tell the user: `Saved to ~/Downloads/webagent/<filename>`
+**Scraped output (markdown, JSON, CSV):** Write the file to `~/Downloads/webagent/<descriptive-name>.<ext>` using the Write tool. Name the file after the site or topic, e.g. `aws-bedrock-moonshot-docs.md`, `linear-pricing.json`.
+
+After any save, always tell the user: `Saved to ~/Downloads/webagent/<filename>`
+
+Only override the folder if the user explicitly specifies a different path.
 
 ### Info-First Pattern — Always Do This Before Downloading
 

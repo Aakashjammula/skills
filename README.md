@@ -429,7 +429,19 @@ sequenceDiagram
 
 ### Setup
 
-Add to `~/.claude/settings.json` (replace path with your clone location):
+**Step 1 — Set `CLAUDE_SKILLS_DIR` as a permanent environment variable** (do this once, survives renames):
+
+```powershell
+# Windows — run in PowerShell, then restart terminal
+[Environment]::SetEnvironmentVariable('CLAUDE_SKILLS_DIR', 'C:\path\to\claude-skills', 'User')
+```
+
+```bash
+# Mac / Linux — add to ~/.zshrc or ~/.bashrc
+export CLAUDE_SKILLS_DIR="/path/to/claude-skills"
+```
+
+**Step 2 — Copy into `~/.claude/settings.json`:**
 
 ```json
 {
@@ -440,7 +452,7 @@ Add to `~/.claude/settings.json` (replace path with your clone location):
         "hooks": [
           {
             "type": "command",
-            "command": "node /full/path/to/claude-skills/hooks/track-tokens.js"
+            "command": "node \"$CLAUDE_SKILLS_DIR/hooks/track-tokens.js\""
           }
         ]
       },
@@ -449,7 +461,7 @@ Add to `~/.claude/settings.json` (replace path with your clone location):
         "hooks": [
           {
             "type": "command",
-            "command": "node /full/path/to/claude-skills/hooks/log-navigation.js"
+            "command": "node \"$CLAUDE_SKILLS_DIR/hooks/log-navigation.js\""
           }
         ]
       }
@@ -457,6 +469,8 @@ Add to `~/.claude/settings.json` (replace path with your clone location):
   }
 }
 ```
+
+> If you rename or move the repo, update `CLAUDE_SKILLS_DIR` — nothing else needs to change.
 
 ### Log files
 

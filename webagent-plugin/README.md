@@ -96,6 +96,45 @@ Phase 3 — Execute (with live token tracking)
 
 Claude always shows available formats and sizes before downloading — no surprises.
 
+## Optional: Playwright Hooks (Recommended)
+
+Two hooks give you automatic token tracking and navigation logging on every browser action.
+
+**What they do:**
+- `track-tokens.js` — counts tokens from every Playwright tool output, writes to `~/.webagent-session.log`
+- `log-navigation.js` — logs every URL visited to `~/.webagent-nav.log`
+
+**Setup:** Add this to your `~/.claude/settings.json` (replace `/path/to/webagent-plugin` with your actual clone path):
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "mcp__plugin_playwright_playwright__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /path/to/webagent-plugin/hooks/track-tokens.js"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__plugin_playwright_playwright__browser_navigate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /path/to/webagent-plugin/hooks/log-navigation.js"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The token log gives Claude real measured token counts instead of estimates, making the Phase 3 reporting more accurate.
+
 ## Works With
 
 - Claude Code

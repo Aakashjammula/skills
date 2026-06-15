@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "mcp__plugin_playwright_playwright__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /path/to/webagent-plugin/hooks/track-tokens.js"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__plugin_playwright_playwright__browser_navigate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /path/to/webagent-plugin/hooks/log-navigation.js"
+          }
+        ]
+      }
+    ]
+  }
+}

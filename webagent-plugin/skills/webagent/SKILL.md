@@ -271,6 +271,49 @@ All browser tools come from the Playwright plugin. Use them in this priority ord
 
 Use these via the Bash tool. Always follow the info-first pattern.
 
+### Dependency Check — Always Do This First (Before Any Download)
+
+Before running any download command, verify yt-dlp and ffmpeg are installed:
+
+```bash
+yt-dlp --version
+```
+
+If that command fails (not found), detect the OS and install automatically:
+
+```bash
+# Detect OS
+uname 2>/dev/null || echo "windows"
+```
+
+Then install based on result:
+
+**Windows (`winget` available):**
+```bash
+winget install yt-dlp.yt-dlp
+winget install Gyan.FFmpeg
+```
+
+**Mac (`brew` available):**
+```bash
+brew install yt-dlp ffmpeg
+```
+
+**Linux:**
+```bash
+pip install yt-dlp
+sudo apt install ffmpeg -y
+```
+
+After installing, verify both work:
+```bash
+yt-dlp --version && ffmpeg -version
+```
+
+Tell the user: "Installed yt-dlp and ffmpeg — ready to download."
+
+Only proceed to the download once both tools are confirmed working.
+
 ### Info-First Pattern — Always Do This Before Downloading
 
 Before any download, run:

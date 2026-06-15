@@ -484,27 +484,101 @@ export CLAUDE_SKILLS_DIR="/path/to/claude-skills"
 
 ---
 
+## Platform Compatibility
+
+Skills use the [SKILL.md open standard](https://www.agensi.io/learn/agent-skills-open-standard) and work across all major AI coding agents without modification.
+
+| Platform | Skills | Hooks | Plugin manifest |
+|---|---|---|---|
+| Claude Code | ✓ | ✓ (track-tokens, log-navigation) | ✓ (plugin.json) |
+| OpenCode | ✓ | — | — |
+| Antigravity CLI (Google) | ✓ | — | — |
+| Codex CLI (OpenAI) | ✓ | — | — |
+| Copilot CLI | ✓ | — | — |
+
+> Gemini CLI was discontinued June 18, 2026. Antigravity CLI is its replacement and uses the same `~/.gemini/skills/` discovery path — no migration needed.
+
+Hooks and `plugin.json` are Claude Code specific. The skill itself (`SKILL.md`) is identical on every platform.
+
+---
+
 ## Install
 
+### All platforms — one command
+
+Clone and run the install script. It symlinks every skill into each platform's discovery path automatically.
+
 ```bash
-# 1. Clone
+# Mac / Linux
 git clone <repo-url>
 cd claude-skills
+bash scripts/install.sh
+```
 
-# 2. Install the plugin
-claude plugin install .
+```powershell
+# Windows (run as Administrator for symlinks)
+git clone <repo-url>
+cd claude-skills
+.\scripts\install.ps1
+```
 
-# 3. Install the Playwright plugin (required for browser tools)
+This creates symlinks in:
+```
+~/.claude/skills/webagent    ← Claude Code
+~/.opencode/skills/webagent  ← OpenCode
+~/.gemini/skills/webagent    ← Gemini CLI
+~/.codex/skills/webagent     ← Codex CLI
+~/.copilot/skills/webagent   ← Copilot CLI
+```
+
+Adding a new skill later? Just re-run the script — it picks up new folders automatically.
+
+---
+
+### Claude Code extras (optional)
+
+**Playwright plugin** (required for browser tools):
+```bash
 claude plugin install playwright
+```
 
-# 4. (Optional) Enable hooks
-#    Copy hooks/settings-snippet.json into ~/.claude/settings.json
-#    Replace /full/path/to/claude-skills with your actual clone path
+**Plugin manifest** (installs via Claude Code's plugin system):
+```bash
+claude plugin install .
+```
 
-# 5. yt-dlp + ffmpeg (Windows — for downloads)
+**Hooks** (token tracking + 50k hard cap):
+```powershell
+# Windows — set the env var permanently, then restart terminal
+[Environment]::SetEnvironmentVariable('CLAUDE_SKILLS_DIR', 'C:\path\to\claude-skills', 'User')
+```
+```bash
+# Mac / Linux — add to ~/.zshrc or ~/.bashrc
+export CLAUDE_SKILLS_DIR="/path/to/claude-skills"
+```
+Then copy `hooks/settings-snippet.json` into `~/.claude/settings.json`.
+
+---
+
+### yt-dlp + ffmpeg (for video downloads, all platforms)
+
+```powershell
+# Windows
 winget install yt-dlp.yt-dlp --accept-source-agreements --accept-package-agreements
 winget install Gyan.FFmpeg --accept-source-agreements --accept-package-agreements
-# Then add yt-dlp to PATH — see hooks/settings-snippet.json for the PowerShell snippet
+
+# Add yt-dlp to PATH (winget doesn't do this automatically)
+$ytdlpExe = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter "yt-dlp.exe" | Select-Object -First 1 -ExpandProperty FullName
+$ytdlpDir = Split-Path $ytdlpExe
+[Environment]::SetEnvironmentVariable("PATH", "$([Environment]::GetEnvironmentVariable('PATH','User'));$ytdlpDir", "User")
+```
+
+```bash
+# Mac
+brew install yt-dlp ffmpeg
+
+# Linux
+pip install yt-dlp && sudo apt install ffmpeg -y
 ```
 
 ---

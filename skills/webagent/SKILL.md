@@ -67,8 +67,9 @@ Maximum 3 questions total. If topic AND goal are already clear from the user's m
 
 **`download`** — User wants to download a video, audio file, or document
 - Q1 (goal): Is this for offline viewing, editing the footage, or audio only?
-- Q2 (preference): Quality (4K / 1080p / 720p / audio-only) and output folder?
+- Q2 (preference): Quality (4K / 1080p / 720p / audio-only)?
 - *(No topic Q needed — the URL or content is usually explicit)*
+- *(Default output folder is always `~/Downloads/webagent` — only ask if the user specifies a different location)*
 
 **`navigate`** — User gives a specific URL and specific action (click X, fill Y, go to Z)
 - No questions. Task is deterministic. Skip directly to Phase 2.
@@ -334,6 +335,22 @@ Tell the user: "Installed yt-dlp and ffmpeg — ready to download."
 
 Only proceed to the download once both tools are confirmed working.
 
+### Default Download Folder
+
+Always save downloads to `~/Downloads/webagent/`. Create it before every download:
+
+```bash
+# Windows (PowerShell)
+New-Item -ItemType Directory -Force "$env:USERPROFILE\Downloads\webagent"
+
+# Mac / Linux
+mkdir -p ~/Downloads/webagent
+```
+
+Use `-P "~/Downloads/webagent"` in every yt-dlp command. Only override if the user explicitly gives a different path.
+
+After the download completes, always tell the user: `Saved to ~/Downloads/webagent/<filename>`
+
 ### Info-First Pattern — Always Do This Before Downloading
 
 Before any download, run:
@@ -376,47 +393,47 @@ YouTube's highest-quality audio stream is opus in a webm container. When merged 
 
 **1080p video (most common choice):**
 ```bash
-yt-dlp -f "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best" --merge-output-format mp4 -o "%(title)s.%(ext)s" <url>
+yt-dlp -f "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best" --merge-output-format mp4 -P "~/Downloads/webagent" -o "%(title)s.%(ext)s" <url>
 ```
 
 **4K video:**
 ```bash
-yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -o "%(title)s.%(ext)s" <url>
+yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -P "~/Downloads/webagent" -o "%(title)s.%(ext)s" <url>
 ```
 
 **1440p video:**
 ```bash
-yt-dlp -f "bestvideo[height<=1440][ext=mp4]+bestaudio[ext=m4a]/best[height<=1440][ext=mp4]/best" --merge-output-format mp4 -o "%(title)s.%(ext)s" <url>
+yt-dlp -f "bestvideo[height<=1440][ext=mp4]+bestaudio[ext=m4a]/best[height<=1440][ext=mp4]/best" --merge-output-format mp4 -P "~/Downloads/webagent" -o "%(title)s.%(ext)s" <url>
 ```
 
 **720p video:**
 ```bash
-yt-dlp -f "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best" --merge-output-format mp4 -o "%(title)s.%(ext)s" <url>
+yt-dlp -f "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best" --merge-output-format mp4 -P "~/Downloads/webagent" -o "%(title)s.%(ext)s" <url>
 ```
 
 **480p video:**
 ```bash
-yt-dlp -f "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480][ext=mp4]/best" --merge-output-format mp4 -o "%(title)s.%(ext)s" <url>
+yt-dlp -f "bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480][ext=mp4]/best" --merge-output-format mp4 -P "~/Downloads/webagent" -o "%(title)s.%(ext)s" <url>
 ```
 
 **360p video:**
 ```bash
-yt-dlp -f "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360][ext=mp4]/best" --merge-output-format mp4 -o "%(title)s.%(ext)s" <url>
+yt-dlp -f "bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360][ext=mp4]/best" --merge-output-format mp4 -P "~/Downloads/webagent" -o "%(title)s.%(ext)s" <url>
 ```
 
 **Audio only — MP3:**
 ```bash
-yt-dlp -x --audio-format mp3 --audio-quality 0 -o "%(title)s.%(ext)s" <url>
+yt-dlp -x --audio-format mp3 --audio-quality 0 -P "~/Downloads/webagent" -o "%(title)s.%(ext)s" <url>
 ```
 
 **Audio only — M4A (better quality, smaller file):**
 ```bash
-yt-dlp -x --audio-format m4a -o "%(title)s.%(ext)s" <url>
+yt-dlp -x --audio-format m4a -P "~/Downloads/webagent" -o "%(title)s.%(ext)s" <url>
 ```
 
 **Custom output folder:**
-Add `-P "/path/to/folder"` to any command above.
-Example: `yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -P "~/Downloads/videos" -o "%(title)s.%(ext)s" <url>`
+Replace `~/Downloads/webagent` with any path the user specifies.
+Example: `yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -P "~/Videos/tutorials" -o "%(title)s.%(ext)s" <url>`
 
 ### FFmpeg Dependency Warning
 

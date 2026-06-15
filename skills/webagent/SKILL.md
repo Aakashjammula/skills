@@ -161,7 +161,15 @@ Then proceed to the next step.
 
 ### How to Count Tokens After Each Step
 
-After a step completes, count tokens in the content you just processed or returned:
+If hooks are enabled, read `~/.webagent-session.log` after each step and use the last entry's token count — these are **measured** from the actual tool output, not estimated. Look for the most recent line matching the tool just called:
+
+```
+2026-06-15T10:23:44Z | browser_navigate | 142 tokens | session total: 4821
+```
+
+Use `session total` from that line as the running total — the hook has already accumulated it.
+
+If hooks are not enabled, estimate manually:
 - Characters ÷ 4 = estimate A
 - Words × 1.3 = estimate B
 - Tokens for this step = round up average of A and B

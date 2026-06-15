@@ -1,15 +1,4 @@
 {
-  "_setup": [
-    "Set CLAUDE_SKILLS_DIR as a permanent system environment variable pointing to your clone.",
-    "",
-    "Windows (run once in PowerShell as Admin, then restart terminal):",
-    "  [Environment]::SetEnvironmentVariable('CLAUDE_SKILLS_DIR', 'C:\\path\\to\\claude-skills', 'User')",
-    "",
-    "Mac / Linux (add to ~/.zshrc or ~/.bashrc):",
-    "  export CLAUDE_SKILLS_DIR=\"/path/to/claude-skills\"",
-    "",
-    "Then copy the 'hooks' block below into ~/.claude/settings.json"
-  ],
   "hooks": {
     "PostToolUse": [
       {

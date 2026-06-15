@@ -488,7 +488,7 @@ export CLAUDE_SKILLS_DIR="/path/to/claude-skills"
 
 ```bash
 # 1. Clone
-git clone https://github.com/Aakashjammula/claude-skills
+git clone <repo-url>
 cd claude-skills
 
 # 2. Install the plugin

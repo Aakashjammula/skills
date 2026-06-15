@@ -289,10 +289,30 @@ uname 2>/dev/null || echo "windows"
 Then install based on result:
 
 **Windows (`winget` available):**
-```bash
-winget install yt-dlp.yt-dlp
-winget install Gyan.FFmpeg
+
+Run in PowerShell:
+```powershell
+winget install yt-dlp.yt-dlp --accept-source-agreements --accept-package-agreements
+winget install Gyan.FFmpeg --accept-source-agreements --accept-package-agreements
 ```
+
+After winget installs, add yt-dlp to the user PATH (winget does NOT do this automatically):
+```powershell
+# Find where winget placed yt-dlp.exe
+$ytdlpExe = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter "yt-dlp.exe" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+$ytdlpDir = Split-Path $ytdlpExe
+
+# Add to user PATH permanently
+$currentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+if ($currentPath -notlike "*$ytdlpDir*") {
+    [Environment]::SetEnvironmentVariable("PATH", "$currentPath;$ytdlpDir", "User")
+}
+
+# Use full path for the current session (PATH won't reload until new terminal)
+Set-Alias yt-dlp $ytdlpExe -Scope Global
+```
+
+> Note: winget PATH changes only take effect in new terminal sessions. Use the full exe path (stored in `$ytdlpExe`) for all yt-dlp commands in the current session instead of `yt-dlp`.
 
 **Mac (`brew` available):**
 ```bash

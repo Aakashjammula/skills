@@ -1,8 +1,6 @@
 # claude-skills
 
-A growing collection of Claude Code skills and plugins.
-
-No server. No MCP libraries. No supply chain risk.
+A Claude Code plugin — a growing collection of skills.
 
 ---
 
